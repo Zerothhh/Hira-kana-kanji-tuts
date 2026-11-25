@@ -1,2 +1,0 @@
-﻿# Hira-kana-kanji-tuts
-
