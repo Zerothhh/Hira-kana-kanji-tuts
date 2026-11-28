@@ -373,7 +373,7 @@ $("check").onclick=async function(){
     }catch(e){if(e&&e.code==="not_granted")sample=null}
     busy=false;btn.textContent="Check";
   }
-  ghost.className="ghost answer";$("r1").classList.add("hide");
+  ghost.className=(auto&&g==="correct")?"ghost":"ghost answer";$("r1").classList.add("hide");
   if(auto){$("r3").classList.remove("hide")}
   else{say("Auto-check isn't available here","Compare with the answer and mark yourself.");$("r2").classList.remove("hide")}
 };
@@ -461,7 +461,7 @@ function typedCheck(){
   var near=!exact&&opts.some(function(o){return o.length>=4&&lev(o,u)===1});
   lastOK=exact||near;scored=true;total++;if(lastOK)right++;score();rec(lastOK);
   inp.readOnly=true;
-  if(exact)say("✓ Correct!",curAns);
+  if(exact)say("✓ Correct!","");
   else if(near)say("✓ Close — counted!","Note to improve: check your spelling. Correct: "+curAns);
   else say("✗ Not quite","Correct answer: "+curAns);
   $("r1").classList.add("hide");$("r3").classList.remove("hide");
@@ -472,7 +472,8 @@ $("flip").onclick=function(){
   if(!scored)return;
   if(lastOK){right--}else{right++}
   lastOK=!lastOK;score();if(times.length)times[times.length-1].ok=lastOK;
-  say(lastOK?"✓ Marked correct":"✗ Marked wrong","");
+  if(curKind==="kana")ghost.className=lastOK?"ghost":"ghost answer";
+  say(lastOK?"✓ Marked correct":"✗ Marked wrong",lastOK?"":"Correct answer: "+curAns);
 };
 $("clear").onclick=function(){if(curKind!=="kana"){$("typed").value="";$("typed").focus()}else clearPad()};
 $("got").onclick=function(){right++;total++;score();rec(true);next()};
