@@ -34,7 +34,7 @@ i{font-style:normal}
 .pad::after{top:50%;left:6%;right:6%;height:1px}
 .pad.wide::before{display:none}
 canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-index:2}
-.ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;line-height:1;z-index:1;pointer-events:none;color:var(--mute);opacity:0;transition:opacity .15s;white-space:nowrap}
+.ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;line-height:1;z-index:1;pointer-events:none;color:var(--mute);opacity:0;white-space:nowrap}
 .ghost.show{opacity:.28}
 .ghost.answer{opacity:1;color:var(--ok)}
 .row{display:flex;gap:8px;margin-top:12px}
@@ -48,6 +48,15 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-inde
 .verdict span{color:var(--mute)}
 .typebox{margin-top:8px}
 .typebox input{width:100%;padding:16px;font-size:22px;text-align:center;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+#sDrill{position:relative}
+.tm{display:flex;align-items:center;gap:8px;font-size:18px;font-variant-numeric:tabular-nums}
+.tm button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:6px 10px;font-size:16px}
+.pauseov{position:absolute;left:0;right:0;top:48px;bottom:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:22px}
+.pauseov span{font-size:14px;color:var(--mute)}
+.pauseov button{padding:12px 28px;font-size:18px;border-radius:12px;border:1px solid var(--acc);background:var(--acc);color:#fff}
+.trow{position:relative;display:flex;justify-content:space-between;gap:8px;padding:10px 12px;margin-top:6px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:15px;overflow:hidden}
+.trow i{position:absolute;left:0;top:0;bottom:0;background:var(--acc);opacity:.14}
+.trow span{position:relative}
 .hide{display:none!important}
 </style>
 </head>
@@ -112,10 +121,14 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-inde
   <p class="sub" id="resSub"></p>
   <div class="prompt"><b id="resText"></b></div>
   <div class="row"><button id="toMenu">Home</button><button class="pri" id="again">Practice again</button></div>
+  <p class="sub" id="timeSum" style="text-align:center;margin:14px 0 6px"></p>
+  <div class="row"><button id="sortT">Sort: slowest first</button></div>
+  <div id="tlist"></div>
 </section>
 
 <section class="screen hide" id="sDrill">
-  <div class="top"><button class="back" data-back>← Back</button><div class="score" id="score">0 / 0</div></div>
+  <div class="top"><button class="back" data-back>← Back</button><div class="tm"><span id="timer">0.0s</span><button id="pauseBtn" title="Pause">⏸</button></div><div class="score" id="score">0 / 0</div></div>
+  <div class="pauseov hide" id="pauseOv"><b>Paused</b><span>Timer stopped</span><button id="resume">▶ Resume</button></div>
   <div class="prompt"><small id="plabel"></small><b id="pmain"></b><em id="psub"></em></div>
   <div class="pad" id="pad"><div class="ghost" id="ghost"></div><canvas id="cv"></canvas></div>
   <div class="typebox hide" id="tbox"><input id="typed" type="text" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type your answer"></div>
@@ -239,11 +252,12 @@ function start(n){
   pad.classList.toggle("wide",mode!=="alpha");
   pad.classList.toggle("hide",mode==="quiz");
   right=total=0;cur=null;N=n;queue=buildQueue(n);score();
+  times=[];paused=false;$("pauseOv").classList.add("hide");$("timer").textContent="0.0s";
   if(scr==="sResult")show("sDrill");else go("sDrill");
   size();next();
 }
 function next(keep){
-  if(!keep){if(!queue.length){showResult();return}cur=queue.shift()}
+  if(!keep){if(!queue.length){showResult();return}cur=queue.shift();tBegin()}
   var d=mode==="alpha"?"alpha":wdir,label,main,sub="",jp=false;
   if(d==="alpha"){label="Write the character for:";main=cur.r;curAns=cur.k;curKind="kana"}
   else if(d==="re"){label="Type the English meaning of:";main=cur.r;curAns=cur.e;curKind="en"}
@@ -266,6 +280,9 @@ function score(){$("score").textContent=total+" / "+N+" · ✓ "+right}
 function showResult(){
   $("resText").textContent=right+" / "+total;
   $("resSub").textContent=total?Math.round(right/total*100)+"% correct":"";
+  var sum=times.reduce(function(a,x){return a+x.ms},0),n=times.length;
+  $("timeSum").textContent=n?"⏱️ Total "+tFmt(sum)+" · Average "+tFmt(sum/n)+" per item":"";
+  sortSlow=false;$("sortT").textContent="Sort: slowest first";renderTimes();
   show("sResult");
 }
 function say(t,s){$("vT").textContent=t;$("vS").textContent=s||"";$("verdict").classList.remove("hide")}
@@ -300,14 +317,14 @@ $("check").onclick=async function(){
   if(curKind!=="kana"){typedCheck();return}
   var blob=await exportPng();
   if(!blob){say("Draw something first ✏️","");return}
-  var auto=false,btn=$("check");
+  tDone=tStop();var auto=false,btn=$("check");
   if(sample){
     busy=true;btn.textContent="Checking…";
     try{
       var lim=await sample.limits();
       if(lim&&lim.images){
         var res=await sample.json(buildPrompt(),{images:[blob],modelTier:"quick",cache:false});
-        var g=res.grade;lastOK=(g==="correct"||g==="close");scored=true;total++;if(lastOK)right++;score();
+        var g=res.grade;lastOK=(g==="correct"||g==="close");scored=true;total++;if(lastOK)right++;score();rec(lastOK);
         var ttl=g==="close"?"✓ Close — counted!":(lastOK?"✓ Correct!":"✗ Not quite");
         say(ttl+" I read: "+(res.read||"?"),(g==="close"?"Note to improve: ":"")+(res.tip||""));
         auto=true;
@@ -319,18 +336,46 @@ $("check").onclick=async function(){
   if(auto){$("r3").classList.remove("hide")}
   else{say("Auto-check isn't available here","Compare with the answer and mark yourself.");$("r2").classList.remove("hide")}
 };
+/* ---------- timer ---------- */
+var tStart=0,tAcc=0,tRun=false,tDone=0,times=[],paused=false,wasRun=false,sortSlow=false;
+function tFmt(ms){if(ms>=60000)return Math.floor(ms/60000)+"m "+Math.round((ms%60000)/1000)+"s";return (ms/1000).toFixed(1)+"s"}
+function tNow(){return tAcc+(tRun?performance.now()-tStart:0)}
+function tBegin(){tAcc=0;tStart=performance.now();tRun=true}
+function tStop(){if(tRun){tAcc+=performance.now()-tStart;tRun=false}return tAcc}
+function rec(ok){times.push({k:cur.k,r:cur.r,e:cur.e,ms:tDone,ok:ok})}
+setInterval(function(){if(scr==="sDrill"&&!paused)$("timer").textContent=tFmt(tNow())},100);
+function pause(){if(paused)return;wasRun=tRun;tStop();paused=true;$("timer").textContent=tFmt(tAcc);$("pauseOv").classList.remove("hide");$("typed").blur()}
+function resume(){if(!paused)return;paused=false;if(wasRun){tStart=performance.now();tRun=true}$("pauseOv").classList.add("hide");if(!$("tbox").classList.contains("hide")&&!$("r1").classList.contains("hide"))$("typed").focus()}
+$("pauseBtn").onclick=function(){paused?resume():pause()};
+$("resume").onclick=resume;
+document.addEventListener("visibilitychange",function(){if(document.hidden&&scr==="sDrill"&&!paused)pause()});
+function renderTimes(){
+  var box=$("tlist");box.textContent="";
+  var arr=times.slice();if(sortSlow)arr.sort(function(a,b){return b.ms-a.ms});
+  var max=Math.max.apply(null,arr.map(function(x){return x.ms}).concat([1]));
+  arr.forEach(function(x){
+    var r=document.createElement("div");r.className="trow";
+    var bar=document.createElement("i");bar.style.width=(x.ms/max*100)+"%";
+    var l=document.createElement("span");l.textContent=(x.ok?"✓ ":"✗ ")+x.k+"  "+(x.e?x.r+" · "+x.e:x.r);
+    var t=document.createElement("span");t.textContent=tFmt(x.ms);
+    r.appendChild(bar);r.appendChild(l);r.appendChild(t);box.appendChild(r);
+  });
+}
+$("sortT").onclick=function(){sortSlow=!sortSlow;$("sortT").textContent=sortSlow?"Sort: original order":"Sort: slowest first";renderTimes()};
+
 function lev(a,b){var m=[],i,j;for(i=0;i<=a.length;i++)m[i]=[i];for(j=0;j<=b.length;j++)m[0][j]=j;for(i=1;i<=a.length;i++)for(j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
 function normEn(s){return s.toLowerCase().replace(/\(.*?\)/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim().replace(/^(a|an|the) /,"")}
 function normRo(s){return s.toLowerCase().replace(/ā/g,"aa").replace(/ī/g,"ii").replace(/ū/g,"uu").replace(/ē/g,"ee").replace(/[ōô]/g,"oo").replace(/['’\- ]/g,"").replace(/ou/g,"oo")}
 function typedCheck(){
   var inp=$("typed"),v=inp.value;
   if(!v.trim()){say("Type your answer first ⌨️","");inp.focus();return}
+  tDone=tStop();
   var opts,u;
   if(curKind==="en"){opts=curAns.split("/").map(normEn);opts.push(normEn(curAns));u=normEn(v)}
   else{opts=[normRo(curAns)];u=normRo(v)}
   var exact=opts.indexOf(u)>-1;
   var near=!exact&&opts.some(function(o){return o.length>=4&&lev(o,u)===1});
-  lastOK=exact||near;scored=true;total++;if(lastOK)right++;score();
+  lastOK=exact||near;scored=true;total++;if(lastOK)right++;score();rec(lastOK);
   inp.readOnly=true;
   if(exact)say("✓ Correct!",curAns);
   else if(near)say("✓ Close — counted!","Note to improve: check your spelling. Correct: "+curAns);
@@ -342,12 +387,12 @@ $("nxt").onclick=function(){next()};
 $("flip").onclick=function(){
   if(!scored)return;
   if(lastOK){right--}else{right++}
-  lastOK=!lastOK;score();
+  lastOK=!lastOK;score();if(times.length)times[times.length-1].ok=lastOK;
   say(lastOK?"✓ Marked correct":"✗ Marked wrong","");
 };
 $("clear").onclick=function(){if(curKind!=="kana"){$("typed").value="";$("typed").focus()}else clearPad()};
-$("got").onclick=function(){right++;total++;score();next()};
-$("miss").onclick=function(){total++;score();next()};
+$("got").onclick=function(){right++;total++;score();rec(true);next()};
+$("miss").onclick=function(){total++;score();rec(false);next()};
 trace.onchange=function(){if(!$("r1").classList.contains("hide"))ghost.className="ghost"+(trace.checked?" show":"")};
 window.addEventListener("resize",function(){if(scr==="sDrill"){size();next(true)}});
 </script>
