@@ -13,18 +13,19 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple
 main{width:100%;max-width:440px;padding:16px}
 h1{font-size:22px;margin:8px 0 4px}
 .sub{color:var(--mute);font-size:14px;margin:0 0 16px}
+i{font-style:normal}
 .menu{display:flex;flex-direction:column;gap:12px}
 .mbtn{display:flex;align-items:center;gap:16px;text-align:left;width:100%;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:17px}
-.mbtn .big{font-size:34px;min-width:64px;text-align:center;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif}
+.mbtn .big{font-size:30px;min-width:72px;text-align:center;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;white-space:nowrap}
 .mbtn small{display:block;color:var(--mute);font-size:13px;margin-top:2px}
 .mbtn:disabled{opacity:.5}
 .back{border:0;background:none;color:var(--acc);font-size:15px;padding:8px 0;margin-bottom:4px}
-.screen.hide,.hide{display:none}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .score{font-size:14px;color:var(--mute)}
 .prompt{text-align:center;margin:8px 0}
 .prompt small{color:var(--mute);display:block;font-size:14px}
-.prompt b{font-size:44px;letter-spacing:2px}
+.prompt b{font-size:44px;letter-spacing:2px;display:block}
+.prompt b.jp{font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif}
 .prompt em{display:block;font-style:normal;color:var(--mute);font-size:15px;margin-top:2px}
 .pad{position:relative;background:var(--card);border:2px solid var(--line);border-radius:16px;aspect-ratio:1/1;width:100%}
 .pad.wide{aspect-ratio:2/1}
@@ -33,18 +34,20 @@ h1{font-size:22px;margin:8px 0 4px}
 .pad::after{top:50%;left:6%;right:6%;height:1px}
 .pad.wide::before{display:none}
 canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-index:2}
-.ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;line-height:1;z-index:1;pointer-events:none;color:var(--mute);opacity:0;white-space:nowrap}
+.ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;line-height:1;z-index:1;pointer-events:none;color:var(--mute);opacity:0;transition:opacity .15s;white-space:nowrap}
 .ghost.show{opacity:.28}
 .ghost.answer{opacity:1;color:var(--ok)}
 .row{display:flex;gap:8px;margin-top:12px}
 .row button{flex:1;padding:12px;font-size:16px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .row button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
 .row button.ok{background:var(--ok);border-color:var(--ok);color:#fff}
-.opt{margin-top:12px;font-size:14px;color:var(--mute);display:flex;align-items:center;gap:8px;justify-content:center}
 .row input{flex:1;min-width:0;padding:12px;font-size:16px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.opt{margin-top:12px;font-size:14px;color:var(--mute);display:flex;align-items:center;gap:8px;justify-content:center}
 .verdict{margin-top:12px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:15px}
 .verdict b{display:block;font-size:17px;margin-bottom:2px}
 .verdict span{color:var(--mute)}
+.typebox{margin-top:8px}
+.typebox input{width:100%;padding:16px;font-size:22px;text-align:center;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
 .hide{display:none!important}
 </style>
 </head>
@@ -62,29 +65,37 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-inde
 </section>
 
 <section class="screen hide" id="sMode">
-  <button class="back" data-back="home">← Back</button>
+  <button class="back" data-back>← Back</button>
   <h1 id="modeTitle">Hiragana</h1>
   <p class="sub">Choose a drill</p>
   <div class="menu">
     <button class="mbtn" data-m="alpha"><span class="big">か</span><span>Writing alphabet drills<small>Write one character at a time</small></span></button>
-    <button class="mbtn" data-m="word"><span class="big">ねこ</span><span>Word writing drills<small>Write whole words from their meaning</small></span></button>
+    <button class="mbtn" data-m="word"><span class="big">ねこ</span><span>Writing word drills<small>Romaji → kana: draw the whole word</small></span></button>
+    <button class="mbtn" data-m="quiz"><span class="big">?</span><span>Guess the Word<small>Type the English meaning or the romaji</small></span></button>
   </div>
 </section>
 
-<section class="screen hide" id="sChap">
-  <button class="back" data-back="mode">← Back</button>
-  <h1>Choose chapter</h1>
-  <p class="sub" id="chapSub"></p>
+<section class="screen hide" id="sSet">
+  <button class="back" data-back>← Back</button>
+  <h1>Vocabulary</h1>
+  <p class="sub">Choose a word set</p>
+  <div class="menu" id="setList"></div>
+</section>
+
+<section class="screen hide" id="sDir">
+  <button class="back" data-back>← Back</button>
+  <h1>Quiz type</h1>
+  <p class="sub" id="dirSub"></p>
   <div class="menu">
-    <button class="mbtn" data-c="1"><span class="big">1</span><span>Chapter 1<small id="cs1"></small></span></button>
-    <button class="mbtn" data-c="2"><span class="big">2</span><span>Chapter 2<small id="cs2"></small></span></button>
-    <button class="mbtn" data-c="3"><span class="big">3</span><span>Chapter 3<small id="cs3"></small></span></button>
-    <button class="mbtn" data-c="all"><span class="big">∞</span><span>All chapters<small id="csall"></small></span></button>
+    <button class="mbtn" data-d="re"><span class="big">R→E</span><span>Romaji → English<small>See the romaji, type the English meaning</small></span></button>
+    <button class="mbtn" data-d="ke"><span class="big"><i class="sg"></i>→E</span><span><i class="sn"></i> → English<small>See the word, type the English meaning</small></span></button>
+    <button class="mbtn" data-d="kr"><span class="big"><i class="sg"></i>→R</span><span><i class="sn"></i> → Romaji<small>See the word, type it in romaji</small></span></button>
+    
   </div>
 </section>
 
 <section class="screen hide" id="sCount">
-  <button class="back" data-back="chap">← Back</button>
+  <button class="back" data-back>← Back</button>
   <h1>How many?</h1>
   <p class="sub" id="countSub"></p>
   <div class="menu">
@@ -104,14 +115,15 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-inde
 </section>
 
 <section class="screen hide" id="sDrill">
-  <div class="top"><button class="back" data-back="mode">← Back</button><div class="score" id="score">0 / 0</div></div>
-  <div class="prompt"><small id="plabel">Write the character for:</small><b id="romaji"></b><em id="meaning"></em></div>
+  <div class="top"><button class="back" data-back>← Back</button><div class="score" id="score">0 / 0</div></div>
+  <div class="prompt"><small id="plabel"></small><b id="pmain"></b><em id="psub"></em></div>
   <div class="pad" id="pad"><div class="ghost" id="ghost"></div><canvas id="cv"></canvas></div>
+  <div class="typebox hide" id="tbox"><input id="typed" type="text" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Type your answer"></div>
   <div class="row" id="r1"><button id="clear">Clear</button><button class="pri" id="check">Check</button></div>
   <div class="row hide" id="r2"><button id="miss">✗ Missed</button><button class="ok" id="got">✓ Got it</button></div>
   <div class="verdict hide" id="verdict"><b id="vT"></b><span id="vS"></span></div>
   <div class="row hide" id="r3"><button id="flip">Wrong verdict? Flip</button><button class="pri" id="nxt">Next →</button></div>
-  <label class="opt"><input type="checkbox" id="trace"> Trace mode (show faint guide)</label>
+  <label class="opt" id="optL"><input type="checkbox" id="trace"> Trace mode (show faint guide)</label>
 </section>
 
 </main>
@@ -120,26 +132,93 @@ var KANA={
 hira:"あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん".split(""),
 kata:"アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン".split("")};
 var R="a i u e o ka ki ku ke ko sa shi su se so ta chi tsu te to na ni nu ne no ha hi fu he ho ma mi mu me mo ya yu yo ra ri ru re ro wa wo n".split(" ");
+/* word = [kana, romaji, english] */
 var WORDS={
-hira:[["ねこ","neko","cat"],["いぬ","inu","dog"],["さかな","sakana","fish"],["みず","mizu","water"],["やま","yama","mountain"],["はな","hana","flower"],["そら","sora","sky"],["ほし","hoshi","star"],["さくら","sakura","cherry blossom"],["つき","tsuki","moon"],["あめ","ame","rain"],["すし","sushi","sushi"],["ひと","hito","person"],["ともだち","tomodachi","friend"],["ごはん","gohan","rice / meal"],["おはよう","ohayou","good morning"],["ありがとう","arigatou","thank you"],["こんにちは","konnichiwa","hello"]],
-kata:[["コーヒー","koohii","coffee"],["テレビ","terebi","television"],["ケーキ","keeki","cake"],["ピアノ","piano","piano"],["カメラ","kamera","camera"],["パン","pan","bread"],["ミルク","miruku","milk"],["ホテル","hoteru","hotel"],["バナナ","banana","banana"],["アイス","aisu","ice cream"],["ラジオ","rajio","radio"],["タクシー","takushii","taxi"],["ギター","gitaa","guitar"],["サッカー","sakkaa","soccer"],["ノート","nooto","notebook"],["スマホ","sumaho","smartphone"],["ピザ","piza","pizza"]]};
-KANA.hira=KANA.hira.concat("がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ".split(""),"きゃ きゅ きょ しゃ しゅ しょ ちゃ ちゅ ちょ にゃ にゅ にょ ひゃ ひゅ ひょ みゃ みゅ みょ りゃ りゅ りょ ぎゃ ぎゅ ぎょ じゃ じゅ じょ びゃ びゅ びょ ぴゃ ぴゅ ぴょ".split(" "));
-KANA.kata=KANA.kata.concat("ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ".split(""),"キャ キュ キョ シャ シュ ショ チャ チュ チョ ニャ ニュ ニョ ヒャ ヒュ ヒョ ミャ ミュ ミョ リャ リュ リョ ギャ ギュ ギョ ジャ ジュ ジョ ビャ ビュ ビョ ピャ ピュ ピョ".split(" "));
-R=R.concat("ga gi gu ge go za ji zu ze zo da ji(di) zu(du) de do ba bi bu be bo pa pi pu pe po".split(" "),"kya kyu kyo sha shu sho cha chu cho nya nyu nyo hya hyu hyo mya myu myo rya ryu ryo gya gyu gyo ja ju jo bya byu byo pya pyu pyo".split(" "));
-WORDS.hira=WORDS.hira.concat([["かばん","kaban","bag"],["でんわ","denwa","telephone"],["たまご","tamago","egg"],["ぶた","buta","pig"],["かぎ","kagi","key"],["ぼうし","boushi","hat"],["えんぴつ","enpitsu","pencil"],["りんご","ringo","apple"],["しゃしん","shashin","photo"],["おちゃ","ocha","tea"],["きょう","kyou","today"],["ひゃく","hyaku","hundred"],["りょこう","ryokou","travel"],["しゅくだい","shukudai","homework"],["きゅうり","kyuuri","cucumber"],["びょういん","byouin","hospital"],["じてんしゃ","jitensha","bicycle"]]);
-WORDS.kata=WORDS.kata.concat([["ゲーム","geemu","game"],["バス","basu","bus"],["ビール","biiru","beer"],["ベッド","beddo","bed"],["シャツ","shatsu","shirt"],["ジュース","juusu","juice"],["チョコレート","chokoreeto","chocolate"],["キャンプ","kyanpu","camping"],["シャワー","shawaa","shower"],["ニュース","nyuusu","news"],["ショップ","shoppu","shop"]]);
-var script="hira",mode="alpha",cur=null,right=0,total=0,drawing=false,last=null;
-var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+hira:{
+starter:[["ねこ","neko","cat"],["いぬ","inu","dog"],["さかな","sakana","fish"],["みず","mizu","water"],["やま","yama","mountain"],["はな","hana","flower"],["そら","sora","sky"],["ほし","hoshi","star"],["さくら","sakura","cherry blossom"],["つき","tsuki","moon"],["あめ","ame","rain"],["すし","sushi","sushi"],["ひと","hito","person"],["ともだち","tomodachi","friend"],["ごはん","gohan","rice / meal"],["おはよう","ohayou","good morning"],["ありがとう","arigatou","thank you"],["こんにちは","konnichiwa","hello"]],
+d2:[["さかな","sakana","fish"],["つくえ","tsukue","desk"],["ちかてつ","chikatetsu","subway"],["とけい","tokei","clock / watch"],["おかし","okashi","sweets / snacks"]],
+d3:[["くるま","kuruma","car"],["ねこ","neko","cat"],["ひこうき","hikouki","airplane"],["せんせい","sensei","teacher"],["はな","hana","flower"],["きもの","kimono","kimono"],["いぬ","inu","dog"],["くつ","kutsu","shoes"],["あたま","atama","head"],["さいふ","saifu","wallet"]],
+d4:[["たまご","tamago","egg"],["かばん","kaban","bag"],["めがね","megane","glasses"],["みず","mizu","water"],["でんわ","denwa","telephone"],["ぶどう","budou","grapes"],["げんき","genki","healthy / energetic"],["かぜ","kaze","cold / wind"],["くだもの","kudamono","fruit"],["てんぷら","tenpura","tempura"]]},
+kata:{starter:[["コーヒー","koohii","coffee"],["テレビ","terebi","television"],["ケーキ","keeki","cake"],["ピアノ","piano","piano"],["カメラ","kamera","camera"],["パン","pan","bread"],["ミルク","miruku","milk"],["ホテル","hoteru","hotel"],["バナナ","banana","banana"],["アイス","aisu","ice cream"],["ラジオ","rajio","radio"],["タクシー","takushii","taxi"],["ギター","gitaa","guitar"],["サッカー","sakkaa","soccer"],["ノート","nooto","notebook"],["スマホ","sumaho","smartphone"],["ピザ","piza","pizza"]]}};
+var SETS=[["starter","Starter words","★"],["d2","Day 2 Vocabulary","D2"],["d3","Day 3 Vocabulary","D3"],["d4","Day 4 Vocabulary","D4"],["all","All days (2–4)","∞"]];
+var DIRN={re:"Romaji → English",ke:"Kana → English",kr:"Kana → Romaji",rk:"Romaji → Kana"};
+
+var script="hira",mode="alpha",setId="starter",wdir="re",cur=null,curKind="kana",curAns="";
+var right=0,total=0,drawing=false,last=null,queue=[],N=10,lastN=10;
+var sample=null,busy=false,scored=false,lastOK=false;
+var stack=[],scr="sHome";
 function $(i){return document.getElementById(i)}
-var ghost=$("ghost"),trace=$("trace"),pad=$("pad");
-function go(id){["sHome","sMode","sChap","sCount","sResult","sDrill"].forEach(function(s){$(s).classList.toggle("hide",s!==id)})}
+var cv=$("cv"),ctx=cv.getContext("2d"),ghost=$("ghost"),trace=$("trace"),pad=$("pad");
+var SCREENS=["sHome","sMode","sSet","sDir","sCount","sResult","sDrill"];
+function show(id){SCREENS.forEach(function(s){$(s).classList.toggle("hide",s!==id)});scr=id}
+function go(id){stack.push(scr);show(id)}
+function back(){show(stack.pop()||"sHome")}
+function sname(){return script==="hira"?"Hiragana":"Katakana"}
+function setName(){for(var i=0;i<SETS.length;i++)if(SETS[i][0]===setId)return SETS[i][1];return ""}
+function dname(d){return DIRN[d].replace("Kana",sname())}
+
+(async function(){try{if(window.claude)sample=await claude.use("sample")}catch(e){sample=null}})();
+
+/* ---------- pool & queue ---------- */
+function wordsOf(){var W=WORDS[script];if(setId==="all")return W.d2.concat(W.d3,W.d4);return W[setId]||W.starter}
+function pool(){
+  if(mode==="alpha")return KANA[script].map(function(c,i){return{k:c,r:R[i],e:""}});
+  return wordsOf().map(function(w){return{k:w[0],r:w[1],e:w[2]}});
+}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function buildQueue(n){var q=[];while(q.length<n){q=q.concat(shuffle(pool()))}return q.slice(0,n)}
+
+/* ---------- menus ---------- */
+function buildSets(){
+  var box=$("setList");box.textContent="";
+  var W=WORDS[script];
+  SETS.forEach(function(s){
+    if(script!=="hira"&&s[0]!=="starter")return;
+    var n=s[0]==="all"?W.d2.length+W.d3.length+W.d4.length:W[s[0]].length;
+    var b=document.createElement("button");b.className="mbtn";
+    var big=document.createElement("span");big.className="big";big.textContent=s[2];
+    var t=document.createElement("span");t.textContent=s[1];
+    var sm=document.createElement("small");sm.textContent=n+" words";t.appendChild(sm);
+    b.appendChild(big);b.appendChild(t);
+    b.onclick=function(){setId=s[0];afterSet()};
+    box.appendChild(b);
+  });
+}
+function prepDir(){
+  document.querySelectorAll(".sg").forEach(function(e){e.textContent=script==="hira"?"あ":"ア"});
+  document.querySelectorAll(".sn").forEach(function(e){e.textContent=sname()});
+  $("dirSub").textContent=sname()+" · "+setName();
+}
+function afterSet(){if(mode==="word"){wdir="rk";toCount()}else{prepDir();go("sDir")}}
+function toCount(){
+  $("countSub").textContent=sname()+" · "+(mode==="alpha"?"alphabet drills":setName()+" · "+dname(wdir));
+  $("allSub").textContent=pool().length+(mode==="alpha"?" characters":" words");
+  $("custRow").classList.add("hide");go("sCount");
+}
+document.querySelectorAll("[data-s]").forEach(function(b){b.onclick=function(){
+  script=b.dataset.s;$("modeTitle").textContent=script==="hira"?"Hiragana  ひらがな":"Katakana  カタカナ";go("sMode")}});
+document.querySelectorAll("[data-m]").forEach(function(b){b.onclick=function(){
+  mode=b.dataset.m;
+  if(mode==="alpha"){toCount()}
+  else if(script==="hira"){buildSets();go("sSet")}
+  else{setId="starter";afterSet()}
+}});
+document.querySelectorAll("[data-d]").forEach(function(b){b.onclick=function(){wdir=b.dataset.d;toCount()}});
+document.querySelectorAll("[data-back]").forEach(function(b){b.onclick=back});
+document.querySelectorAll("[data-n]").forEach(function(b){b.onclick=function(){var v=b.dataset.n;start(v==="all"?pool().length:parseInt(v,10))}});
+$("custBtn").onclick=function(){$("custRow").classList.toggle("hide");$("cNum").focus()};
+$("cGo").onclick=function(){var v=parseInt($("cNum").value,10);if(!v||v<1){$("cNum").focus();return}start(Math.min(v,200))};
+$("again").onclick=function(){start(lastN)};
+$("toMenu").onclick=function(){stack=[];show("sHome")};
+
+/* ---------- drawing ---------- */
 function ink(){return getComputedStyle(document.documentElement).getPropertyValue("--ink").trim()||"#222"}
 function size(){
   var r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;
   if(!r.width)return;
   cv.width=r.width*d;cv.height=r.height*d;
   ctx.setTransform(d,0,0,d,0,0);
-  ctx.lineWidth=Math.max(6,Math.min(r.width,r.height)/24);ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.lineWidth=Math.max(5,Math.min(r.width,r.height)/(mode==="alpha"?24:28));ctx.lineCap="round";ctx.lineJoin="round";
 }
 function pos(e){var r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 cv.addEventListener("pointerdown",function(e){
@@ -153,166 +232,112 @@ cv.addEventListener("pointermove",function(e){
 });
 ["pointerup","pointercancel"].forEach(function(n){cv.addEventListener(n,function(){drawing=false})});
 function clearPad(){var r=cv.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height)}
-var queue=[],N=10,lastN=10;
-var chap="all";
-function chOf(x,i){if(mode==="alpha")return i<46?1:i<71?2:3;return /[ゃゅょャュョ]/.test(x[0])?3:/[\u3099\u309a]/.test(x[0].normalize("NFD"))?2:1}
-function pool(all){var a=[],L=mode==="alpha"?KANA[script]:WORDS[script];L.forEach(function(x,i){if(!all&&chap!=="all"&&String(chOf(x,i))!==String(chap))return;a.push(mode==="alpha"?{t:x,r:R[i],m:""}:{t:x[0],r:x[2],m:x[1]})});return a}
-function fillChap(){var o=chap;["1","2","3","all"].forEach(function(c){chap=c;var p=pool(),t=p.length+(mode==="alpha"?" characters":" words");
-  if(c!=="all")t+=" · "+(mode==="alpha"?p[0].t+" → "+p[p.length-1].t:p.slice(0,3).map(function(x){return x.t}).join(" "));
-  $("cs"+c).textContent=t});chap=o}
-function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
-function buildQueue(n){var q=[];while(q.length<n){q=q.concat(shuffle(pool()))}return q.slice(0,n)}
-function next(keep){
-  if(!keep){if(!queue.length){showResult();return}cur=queue.shift();trace.checked=false}
-  var wd=cur.t.length>1;if(pad.classList.contains("wide")!==wd){pad.classList.toggle("wide",wd);size()}
-  $("romaji").textContent=cur.r;$("meaning").textContent=cur.m;
-  ghost.textContent=cur.t;
-  var w=pad.clientWidth,h=pad.clientHeight;
-  ghost.style.fontSize=Math.min(h*0.78,(w*0.9)/cur.t.length)+"px";
-  ghost.className="ghost"+(trace.checked?" show":"");
-  clearPad();$("r1").classList.remove("hide");$("r2").classList.add("hide");$("r3").classList.add("hide");$("verdict").classList.add("hide");scored=false;
-}
+
+/* ---------- drill ---------- */
 function start(n){
   lastN=n;
-    $("plabel").textContent=mode==="alpha"?"Write the character for:":"Write this word in "+(script==="hira"?"hiragana":"katakana")+":";
-  $("romaji").style.fontSize=mode==="alpha"?"44px":"30px";
+  pad.classList.toggle("wide",mode!=="alpha");
+  pad.classList.toggle("hide",mode==="quiz");
   right=total=0;cur=null;N=n;queue=buildQueue(n);score();
-  go("sDrill");size();next();
+  if(scr==="sResult")show("sDrill");else go("sDrill");
+  size();next();
 }
-document.querySelectorAll("[data-s]").forEach(function(b){b.onclick=function(){
-  script=b.dataset.s;$("modeTitle").textContent=script==="hira"?"Hiragana  ひらがな":"Katakana  カタカナ";go("sMode")}});
-document.querySelectorAll("[data-m]").forEach(function(b){b.onclick=function(){mode=b.dataset.m;
-  $("chapSub").textContent=(script==="hira"?"Hiragana":"Katakana")+" · "+(mode==="alpha"?"alphabet":"word")+" drills";
-  fillChap();go("sChap")}});
-document.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){chap=b.dataset.c;
-  $("countSub").textContent=(script==="hira"?"Hiragana":"Katakana")+" · "+(mode==="alpha"?"alphabet":"word")+" drills · "+(chap==="all"?"All chapters":"Chapter "+chap);
-  $("allSub").textContent=pool().length+(mode==="alpha"?" characters":" words");
-  $("custRow").classList.add("hide");go("sCount")}});
-document.querySelectorAll("[data-back]").forEach(function(b){b.onclick=function(){go({home:"sHome",mode:"sMode",chap:"sChap"}[b.dataset.back])}});
+function next(keep){
+  if(!keep){if(!queue.length){showResult();return}cur=queue.shift()}
+  var d=mode==="alpha"?"alpha":wdir,label,main,sub="",jp=false;
+  if(d==="alpha"){label="Write the character for:";main=cur.r;curAns=cur.k;curKind="kana"}
+  else if(d==="re"){label="Type the English meaning of:";main=cur.r;curAns=cur.e;curKind="en"}
+  else if(d==="ke"){label="Type the English meaning of:";main=cur.k;curAns=cur.e;curKind="en";jp=true}
+  else if(d==="kr"){label="Type this in romaji:";main=cur.k;curAns=cur.r;curKind="rom";jp=true}
+  else{label="Draw this word in "+sname().toLowerCase()+":";main=cur.r;sub=cur.e;curAns=cur.k;curKind="kana"}
+  $("plabel").textContent=label;$("pmain").textContent=main;$("psub").textContent=sub;
+  $("pmain").className=jp?"jp":"";
+  $("pmain").style.fontSize=d==="alpha"?"44px":(jp?"40px":"30px");
+  ghost.textContent=curAns;
+  ghost.style.fontFamily=curKind==="kana"?"":"system-ui,-apple-system,sans-serif";
+  var w=pad.clientWidth,h=pad.clientHeight,kana=curKind==="kana";
+  ghost.style.fontSize=Math.min(h*(kana?0.78:0.45),(w*0.9)/(curAns.length*(kana?1:0.55)))+"px";
+  ghost.className="ghost"+(trace.checked?" show":"");
+  var typed=curKind!=="kana";$("tbox").classList.toggle("hide",!typed);$("optL").classList.toggle("hide",typed);$("typed").value="";$("typed").readOnly=false;
+  if(typed&&!keep)$("typed").focus();
+  clearPad();$("r1").classList.remove("hide");$("r2").classList.add("hide");$("r3").classList.add("hide");$("verdict").classList.add("hide");scored=false;
+}
+function score(){$("score").textContent=total+" / "+N+" · ✓ "+right}
 function showResult(){
   $("resText").textContent=right+" / "+total;
   $("resSub").textContent=total?Math.round(right/total*100)+"% correct":"";
-  go("sResult");
+  show("sResult");
 }
-document.querySelectorAll("[data-n]").forEach(function(b){b.onclick=function(){var v=b.dataset.n;start(v==="all"?pool().length:parseInt(v,10))}});
-$("custBtn").onclick=function(){$("custRow").classList.toggle("hide");$("cNum").focus()};
-$("cGo").onclick=function(){var v=parseInt($("cNum").value,10);if(!v||v<1){$("cNum").focus();return}start(Math.min(v,200))};
-$("again").onclick=function(){start(lastN)};
-$("toMenu").onclick=function(){go("sHome")};
-$("clear").onclick=clearPad;
-var busy=false,scored=false,lastOK=false;
 function say(t,s){$("vT").textContent=t;$("vS").textContent=s||"";$("verdict").classList.remove("hide")}
-/* ---- On-device handwriting checker (no server, works offline) ----
-   Compares your stroke skeleton to every candidate glyph rendered from a system font.
-   Tune strictness here: t1 = max distance for "correct", tmax = max for "close",
-   mc = how clearly the target must beat look-alikes, mw = margin at which a look-alike wins. */
-var CFG={a:{t1:4,tmax:8,mc:.35,mw:.8,cap:10,miss:5},w:{t1:5.5,tmax:10,mc:.35,mw:1,cap:14,miss:8}};
-var FONT='"Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo","Noto Sans CJK JP","MS Gothic",sans-serif';
-var GW=64,GH=64,M=3,GL={},fok=null;
-var PAIRS=[["さ","き","き has two bars on top; さ has just one"],["ぬ","め","ぬ ends in a small loop; め doesn't"],["ね","れ","ね ends in a loop; れ ends in a flick"],["れ","わ","れ flicks outward at the end; わ curls inward"],["ね","わ","ね ends in a loop; わ ends in a plain curve"],["は","ほ","ほ has two bars on the right; は has one"],["る","ろ","る ends in a small loop; ろ stays open"],["い","り","い: left stroke is longer. り: right stroke is longer"],["こ","に","に has a vertical stroke on the left; こ doesn't"],["あ","お","お has a dot at the top right; あ doesn't"],["ま","よ","ま has two bars; よ has one"],["ち","ら","ら starts with a small dot; ち starts with a bar"],["シ","ツ","シ: strokes lean sideways, sweeping up. ツ: strokes stand upright, sweeping down"],["ソ","ン","ソ: long stroke sweeps down-left. ン: it rises up-right"],["ク","ケ","ケ has an extra short stroke on the left"],["ウ","ワ","ウ has a short dash on top; ワ doesn't"],["フ","ワ","ワ has a short stroke on the left; フ is one stroke"],["コ","ユ","ユ has an extra bar at the bottom"],["ス","ヌ","ヌ has an extra small stroke on the right"]];
-function hint(a,b){var na=a.normalize("NFD"),nb=b.normalize("NFD"),re=/[\u3099\u309a]/g;
-  if(na!==nb&&na.replace(re,"")===nb.replace(re,"")){if(na.length>nb.length)return"Don't forget the small marks ( ゛ or ゜ )";if(na.length<nb.length)return"No ゛ or ゜ marks needed here";return"゛ is two dashes; ゜ is a small circle"}
-  if(a.length!==b.length)return"";for(var i=0;i<a.length;i++)if(a[i]!==b[i]){for(var k=0;k<PAIRS.length;k++){var p=PAIRS[k];if((p[0]===a[i]&&p[1]===b[i])||(p[1]===a[i]&&p[0]===b[i]))return p[2]}return""}return""}
-function variants(w){var o=[];for(var i=0;i<w.length;i++)PAIRS.forEach(function(p){var x=p[0]===w[i]?p[1]:p[1]===w[i]?p[0]:null;if(x)o.push(w.slice(0,i)+x+w.slice(i+1))});return o}
-function grid(c){
-  var w=c.width,h=c.height,d=c.getContext("2d").getImageData(0,0,w,h).data,x0=w,y0=h,x1=-1,y1=-1,x,y,i;
-  for(y=0;y<h;y++)for(x=0;x<w;x++)if(d[(y*w+x)*4+3]>60){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
-  if(x1<0)return null;
-  var bw=x1-x0+1,bh=y1-y0+1,t=document.createElement("canvas");t.width=GW;t.height=GH;
-  var tc=t.getContext("2d");tc.imageSmoothingQuality="high";tc.drawImage(c,x0,y0,bw,bh,M,M,GW-2*M,GH-2*M);
-  var o=tc.getImageData(0,0,GW,GH).data,g=new Uint8Array(GW*GH);
-  for(i=0;i<g.length;i++)g[i]=o[i*4+3]>90?1:0;
-  return{g:g,ar:bw/bh,bw:bw,bh:bh};
+function exportPng(){
+  var t=document.createElement("canvas");t.width=cv.width;t.height=cv.height;
+  var tc=t.getContext("2d");tc.drawImage(cv,0,0);
+  var id=tc.getImageData(0,0,t.width,t.height),p=id.data,inkd=false;
+  for(var i=0;i<p.length;i+=4){if(p[i+3]>0){p[i]=p[i+1]=p[i+2]=0;p[i+3]=255;inkd=true}}
+  if(!inkd)return Promise.resolve(null);
+  tc.putImageData(id,0,0);
+  var o=document.createElement("canvas");o.width=t.width;o.height=t.height;
+  var oc=o.getContext("2d");oc.fillStyle="#fff";oc.fillRect(0,0,o.width,o.height);oc.drawImage(t,0,0);
+  return new Promise(function(res){o.toBlob(res,"image/png")});
 }
-function thin(g){
-  var W=GW,H=GH,p=new Uint8Array(g),ch=true,s,x,y,i,k,n,B,A,del;
-  while(ch){ch=false;
-    for(s=0;s<2;s++){del=[];
-      for(y=1;y<H-1;y++)for(x=1;x<W-1;x++){i=y*W+x;if(!p[i])continue;
-        n=[p[i-W],p[i-W+1],p[i+1],p[i+W+1],p[i+W],p[i+W-1],p[i-1],p[i-W-1]];B=0;A=0;
-        for(k=0;k<8;k++){B+=n[k];if(!n[k]&&n[(k+1)%8])A++}
-        if(B<2||B>6||A!==1)continue;
-        if(s===0){if(n[0]*n[2]*n[4]||n[2]*n[4]*n[6])continue}else{if(n[0]*n[2]*n[6]||n[0]*n[4]*n[6])continue}
-        del.push(i)}
-      if(del.length){ch=true;del.forEach(function(j){p[j]=0})}}}
-  return p;
+function buildPrompt(){
+  var kind=sname().toLowerCase(),task,rules;
+  if(curKind==="kana"){
+    var what=mode==="alpha"?"the "+kind+" character "+cur.k+" (romaji '"+cur.r+"')":"the word "+cur.k+" (romaji '"+cur.r+"', meaning '"+cur.e+"') in "+kind;
+    task="write "+what;
+    rules="The handwriting is Japanese. Be lenient about neatness, size and wobble, but similar-looking kana (e.g. さ/き, ぬ/め, シ/ツ, ソ/ン) must be told apart"+(mode==="word"?", and every character must be present in the right order":"")+". A different character is always 'wrong'.";
+  }else if(curKind==="en"){
+    task="write the English meaning of the Japanese word "+cur.k+" (romaji '"+cur.r+"')";
+    rules="The handwriting is in English letters. Expected meaning: '"+cur.e+"' (if several are listed with '/', any one is fine; accept clear synonyms). Capitalization and neatness do not matter. 'close' = right word with a spelling slip or a hard-to-read letter; 'wrong' = different meaning.";
+  }else{
+    task="write the romaji reading of the word "+cur.k+" (meaning '"+cur.e+"')";
+    rules="The handwriting is in Latin letters. Expected romaji: '"+cur.r+"'. Accept standard Hepburn variants (ou/oo/ō etc.). 'close' = one letter off or a hard-to-read letter; 'wrong' otherwise.";
+  }
+  return "The image is a handwritten answer on a white background. The learner was asked to "+task+". "+rules+" Grade it 'correct' (clearly right), 'close' (recognizable as the right answer but with flaws, e.g. odd kana proportions, a missing or extra small stroke, a wrong stroke direction, bad spacing, or a small spelling slip) or 'wrong'. Reply with JSON only: {\"grade\":\"correct\" or \"close\" or \"wrong\",\"read\":\"what you read the handwriting as\",\"tip\":\"one specific improvement tip, max 15 words (for correct, short praise)\"}";
 }
-function dt(p){
-  var W=GW,H=GH,n=W*H,d=new Float32Array(n),x,y,i,v,m=Math.min;
-  for(i=0;i<n;i++)d[i]=p[i]?0:9999;
-  for(y=0;y<H;y++)for(x=0;x<W;x++){i=y*W+x;v=d[i];if(x>0)v=m(v,d[i-1]+3);
-    if(y>0){v=m(v,d[i-W]+3);if(x>0)v=m(v,d[i-W-1]+4);if(x<W-1)v=m(v,d[i-W+1]+4)}d[i]=v}
-  for(y=H-1;y>=0;y--)for(x=W-1;x>=0;x--){i=y*W+x;v=d[i];if(x<W-1)v=m(v,d[i+1]+3);
-    if(y<H-1){v=m(v,d[i+W]+3);if(x<W-1)v=m(v,d[i+W+1]+4);if(x>0)v=m(v,d[i+W-1]+4)}d[i]=v}
-  return d;
-}
-function glyph(t){
-  var k=GW+t;if(GL[k])return GL[k];
-  var c=document.createElement("canvas"),x=c.getContext("2d"),f="180px "+FONT,i;
-  x.font=f;var w=Math.ceil(x.measureText(t).width);
-  c.width=w+60;c.height=260;x=c.getContext("2d");x.font=f;x.textBaseline="middle";x.fillStyle="#000";x.fillText(t,30,130);
-  var g=grid(c);if(!g)return GL[k]={};
-  var sk=thin(g.g),idx=[];for(i=0;i<sk.length;i++)if(sk[i])idx.push(i);
-  return GL[k]={ar:g.ar,g:g.g,idx:idx,d:dt(sk)};
-}
-function fontOK(){
-  if(fok===null){var a=glyph("あ"),b=glyph("い"),s=0,i;if(a.g&&b.g)for(i=0;i<a.g.length;i++)if(a.g[i]!==b.g[i])s++;fok=s>20}
-  return fok;
-}
-function cham(du,ui,gl,cap){
-  var a=0,b=0,c=cap*3,i;
-  for(i=0;i<ui.length;i++)a+=Math.min(gl.d[ui[i]],c);
-  for(i=0;i<gl.idx.length;i++)b+=Math.min(du[gl.idx[i]],c);
-  return(a/ui.length+b/gl.idx.length)/6;
-}
-function reg(l){
-  var sx=0,sy=0;l.forEach(function(i){sx+=i%GW;sy+=Math.floor(i/GW)});
-  var x=sx/l.length/GW,y=sy/l.length/GH,v=y<.34?"upper":y>.66?"lower":"",h=x<.34?"left":x>.66?"right":"";
-  return v&&h?v+"-"+h:(v||h||"center");
-}
-function judge(u){
-  if(!fontOK())return null;
-  var isW=cur.t.length>1,T=isW?CFG.w:CFG.a,us=thin(u.g),du=dt(us),ui=[],i;
-  for(i=0;i<us.length;i++)if(us[i])ui.push(i);
-  if(!ui.length)return null;
-  var cs=[cur.t],seen={};seen[cur.t]=1;
-  function add(t){if(!seen[t]){seen[t]=1;cs.push(t)}}
-  pool(true).forEach(function(p){if(cur.m||p.t.length===cur.t.length)add(p.t)});
-  if(cur.m)variants(cur.t).forEach(add);
-  var sc=cs.map(function(t){var gl=glyph(t);return{t:t,gl:gl,d:gl.idx&&gl.idx.length?cham(du,ui,gl,T.cap):99}});
-  var me=sc[0],bo=null,all=me;
-  sc.forEach(function(s,k){if(k&&(!bo||s.d<bo.d))bo=s;if(s.d<all.d)all=s});
-  if(!bo)bo=me;
-  var m=bo.d-me.d,g;
-  if(me.d>T.tmax||m<-T.mw)g="wrong";else if(m<T.mc||me.d>T.t1)g="close";else g="correct";
-  var n=[];
-  if(!isW){var r=u.ar/me.gl.ar;if(r>1.4)n.push("Too wide — narrow it a little");else if(r<.7)n.push("Too narrow — give it a bit more width")}
-  var mi=[],ex=[];
-  me.gl.idx.forEach(function(j){if(du[j]/3>T.miss)mi.push(j)});
-  ui.forEach(function(j){if(me.gl.d[j]/3>T.miss)ex.push(j)});
-  if(mi.length>me.gl.idx.length*.08)n.push("A stroke looks missing or off in the "+reg(mi)+" area");
-  if(ex.length>ui.length*.08)n.push("Extra or misplaced stroke in the "+reg(ex)+" area");
-  var h=hint(cur.t,bo.t);if(h&&g!=="correct"&&m<1)n.unshift(h);
-  return{grade:g,read:all.t,tip:n.slice(0,2).join(". ")||(g==="correct"?"Nice work!":"Slow down and follow the model's stroke shapes.")};
-}
-$("check").onclick=function(){
+$("check").onclick=async function(){
   if(busy)return;
-  GW=cur.t.length>1?128:64;GH=64;
-  var u=grid(cv);
-  if(!u){say("Draw something first ✏️","");return}
-  if(u.bw<cv.width*.1&&u.bh<cv.height*.1){say("That's a bit small","Write bigger so I can read it.");return}
-  var r=null;busy=true;
-  try{r=judge(u)}catch(e){r=null}
-  busy=false;
-  if(r){
-    lastOK=r.grade!=="wrong";scored=true;total++;if(lastOK)right++;score();
-    var rd=(r.grade==="wrong"&&r.read===cur.t)?"unclear":r.read;
-    say((r.grade==="close"?"✓ Close — counted!":lastOK?"✓ Correct!":"✗ Not quite")+" I read: "+rd,(r.grade==="close"?"Note to improve: ":"")+r.tip);
+  if(curKind!=="kana"){typedCheck();return}
+  var blob=await exportPng();
+  if(!blob){say("Draw something first ✏️","");return}
+  var auto=false,btn=$("check");
+  if(sample){
+    busy=true;btn.textContent="Checking…";
+    try{
+      var lim=await sample.limits();
+      if(lim&&lim.images){
+        var res=await sample.json(buildPrompt(),{images:[blob],modelTier:"quick",cache:false});
+        var g=res.grade;lastOK=(g==="correct"||g==="close");scored=true;total++;if(lastOK)right++;score();
+        var ttl=g==="close"?"✓ Close — counted!":(lastOK?"✓ Correct!":"✗ Not quite");
+        say(ttl+" I read: "+(res.read||"?"),(g==="close"?"Note to improve: ":"")+(res.tip||""));
+        auto=true;
+      }
+    }catch(e){if(e&&e.code==="not_granted")sample=null}
+    busy=false;btn.textContent="Check";
   }
   ghost.className="ghost answer";$("r1").classList.add("hide");
-  if(r){$("r3").classList.remove("hide")}
+  if(auto){$("r3").classList.remove("hide")}
   else{say("Auto-check isn't available here","Compare with the answer and mark yourself.");$("r2").classList.remove("hide")}
 };
+function lev(a,b){var m=[],i,j;for(i=0;i<=a.length;i++)m[i]=[i];for(j=0;j<=b.length;j++)m[0][j]=j;for(i=1;i<=a.length;i++)for(j=1;j<=b.length;j++)m[i][j]=Math.min(m[i-1][j]+1,m[i][j-1]+1,m[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return m[a.length][b.length]}
+function normEn(s){return s.toLowerCase().replace(/\(.*?\)/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim().replace(/^(a|an|the) /,"")}
+function normRo(s){return s.toLowerCase().replace(/ā/g,"aa").replace(/ī/g,"ii").replace(/ū/g,"uu").replace(/ē/g,"ee").replace(/[ōô]/g,"oo").replace(/['’\- ]/g,"").replace(/ou/g,"oo")}
+function typedCheck(){
+  var inp=$("typed"),v=inp.value;
+  if(!v.trim()){say("Type your answer first ⌨️","");inp.focus();return}
+  var opts,u;
+  if(curKind==="en"){opts=curAns.split("/").map(normEn);opts.push(normEn(curAns));u=normEn(v)}
+  else{opts=[normRo(curAns)];u=normRo(v)}
+  var exact=opts.indexOf(u)>-1;
+  var near=!exact&&opts.some(function(o){return o.length>=4&&lev(o,u)===1});
+  lastOK=exact||near;scored=true;total++;if(lastOK)right++;score();
+  inp.readOnly=true;
+  if(exact)say("✓ Correct!",curAns);
+  else if(near)say("✓ Close — counted!","Note to improve: check your spelling. Correct: "+curAns);
+  else say("✗ Not quite","Correct answer: "+curAns);
+  $("r1").classList.add("hide");$("r3").classList.remove("hide");
+}
+$("typed").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();if(!$("r3").classList.contains("hide"))next();else typedCheck()}});
 $("nxt").onclick=function(){next()};
 $("flip").onclick=function(){
   if(!scored)return;
@@ -320,11 +345,11 @@ $("flip").onclick=function(){
   lastOK=!lastOK;score();
   say(lastOK?"✓ Marked correct":"✗ Marked wrong","");
 };
-function score(){$("score").textContent=total+" / "+N+" · ✓ "+right}
+$("clear").onclick=function(){if(curKind!=="kana"){$("typed").value="";$("typed").focus()}else clearPad()};
 $("got").onclick=function(){right++;total++;score();next()};
 $("miss").onclick=function(){total++;score();next()};
 trace.onchange=function(){if(!$("r1").classList.contains("hide"))ghost.className="ghost"+(trace.checked?" show":"")};
-window.addEventListener("resize",function(){if(!$("sDrill").classList.contains("hide")){size();next(true)}});
+window.addEventListener("resize",function(){if(scr==="sDrill"){size();next(true)}});
 </script>
 </body>
 </html>
